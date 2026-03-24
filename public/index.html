@@ -310,6 +310,25 @@
       }).join("");
     }
 
+    // Fetch initial prices via REST, then connect SSE for live updates
+    async function init() {
+      try {
+        const res = await fetch("/api/prices");
+        const data = await res.json();
+        tokens = data.map(t => ({
+          ...t,
+          change_pct: t.change_24h || 0,
+          _flash: "",
+        }));
+        tokens.forEach(t => { previousPrices[t.address] = t.price_usd; });
+        renderTokens();
+      } catch (e) {
+        console.error("Failed to fetch initial prices:", e);
+      }
+
+      connectSSE();
+    }
+
     function connectSSE() {
       const evtSource = new EventSource("/api/stream");
 
@@ -322,14 +341,17 @@
         try {
           const data = JSON.parse(event.data);
 
+          // Skip init events (from local Express server)
           if (data.type === "init") {
-            tokens = data.tokens.map(t => ({
-              ...t,
-              change_pct: t.change_24h || 0,
-              _flash: "",
-            }));
-            data.tokens.forEach(t => { previousPrices[t.address] = t.price_usd; });
-            renderTokens();
+            if (!tokens.length) {
+              tokens = data.tokens.map(t => ({
+                ...t,
+                change_pct: t.change_24h || 0,
+                _flash: "",
+              }));
+              data.tokens.forEach(t => { previousPrices[t.address] = t.price_usd; });
+              renderTokens();
+            }
             return;
           }
 
@@ -370,7 +392,7 @@
       };
     }
 
-    connectSSE();
+    init();
   </script>
 </body>
 </html>
