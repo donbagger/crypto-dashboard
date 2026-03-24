@@ -1,0 +1,14 @@
+{
+  "name": "solana-price-dashboard",
+  "version": "1.0.0",
+  "description": "Real-time Solana token price dashboard powered by DexPaprika",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "eventsource": "^2.0.2",
+    "express": "^4.21.0",
+    "https-proxy-agent": "^5.0.1"
+  }
+}

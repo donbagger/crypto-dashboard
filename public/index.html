@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solana Token Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0e17;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #9945FF, #14F195);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 8px 16px;
+      background: #131a2b;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+      background: #ef4444;
+    }
+
+    .status-dot.connected {
+      background: #14F195;
+      box-shadow: 0 0 6px #14F195;
+    }
+
+    .token-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 4px;
+    }
+
+    .token-table thead th {
+      text-align: left;
+      padding: 8px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+    }
+
+    .token-table thead th:nth-child(3),
+    .token-table thead th:nth-child(4) {
+      text-align: right;
+    }
+
+    .token-row {
+      background: #131a2b;
+      transition: background 0.2s;
+    }
+
+    .token-row:hover {
+      background: #1a2340;
+    }
+
+    .token-row td {
+      padding: 14px 16px;
+      font-size: 14px;
+    }
+
+    .token-row td:first-child {
+      border-radius: 8px 0 0 8px;
+    }
+
+    .token-row td:last-child {
+      border-radius: 0 8px 8px 0;
+    }
+
+    .rank {
+      color: #64748b;
+      font-size: 13px;
+      width: 32px;
+    }
+
+    .token-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .token-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #9945FF, #14F195);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .token-symbol {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .token-name {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .price {
+      text-align: right;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      font-size: 15px;
+      transition: color 0.3s;
+    }
+
+    .change {
+      text-align: right;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+    }
+
+    .change.positive { color: #14F195; }
+    .change.negative { color: #ef4444; }
+    .change.neutral  { color: #64748b; }
+
+    .flash-green { color: #14F195 !important; }
+    .flash-red   { color: #ef4444 !important; }
+
+    .loading-row td {
+      text-align: center;
+      color: #64748b;
+      padding: 40px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .loading-text {
+      animation: pulse 1.5s infinite;
+    }
+
+    .update-counter {
+      font-variant-numeric: tabular-nums;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 12px;
+      color: #475569;
+    }
+
+    footer a {
+      color: #9945FF;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Solana Token Dashboard</h1>
+      <p>Real-time prices for top Solana tokens via DexPaprika</p>
+    </header>
+
+    <div class="status-bar">
+      <div>
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Connecting...</span>
+      </div>
+      <div class="update-counter" id="updateCounter">Updates: 0</div>
+    </div>
+
+    <table class="token-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Token</th>
+          <th>Price</th>
+          <th>Change</th>
+        </tr>
+      </thead>
+      <tbody id="tokenBody">
+        <tr class="loading-row">
+          <td colspan="4"><span class="loading-text">Loading token prices...</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <footer>
+      Powered by <a href="https://dexpaprika.com" target="_blank" rel="noopener">DexPaprika</a> streaming API
+    </footer>
+  </div>
+
+  <script>
+    const tokenBody = document.getElementById("tokenBody");
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const updateCounter = document.getElementById("updateCounter");
+
+    let tokens = [];
+    let updateCount = 0;
+    let previousPrices = {};
+
+    // Color palette for token icons
+    const ICON_COLORS = [
+      ["#9945FF", "#14F195"],
+      ["#00C2FF", "#7B61FF"],
+      ["#FF6B6B", "#FFA500"],
+      ["#14F195", "#00C2FF"],
+      ["#FF3864", "#FF85A1"],
+      ["#FFD700", "#FFA500"],
+      ["#00BFFF", "#1E90FF"],
+      ["#DA70D6", "#FF69B4"],
+      ["#00FA9A", "#20B2AA"],
+      ["#FF4500", "#FF6347"],
+    ];
+
+    function formatPrice(price) {
+      if (price === null || price === undefined) return "-.--";
+      if (price >= 1) return "$" + price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (price >= 0.01) return "$" + price.toFixed(4);
+      if (price >= 0.0001) return "$" + price.toFixed(6);
+      // For very small prices, use scientific-like format
+      const str = price.toFixed(10);
+      const match = str.match(/^0\.(0+)(\d{4})/);
+      if (match) {
+        const zeros = match[1].length;
+        return `$0.0{${zeros}}${match[2]}`;
+      }
+      return "$" + price.toFixed(8);
+    }
+
+    function formatChange(pct) {
+      if (pct === 0 || pct === null || pct === undefined) return { text: "0.00%", cls: "neutral" };
+      const sign = pct > 0 ? "+" : "";
+      const cls = pct > 0 ? "positive" : "negative";
+      return { text: sign + pct.toFixed(2) + "%", cls };
+    }
+
+    function renderTokens() {
+      if (!tokens.length) return;
+
+      tokenBody.innerHTML = tokens.map((token, i) => {
+        const [c1, c2] = ICON_COLORS[i % ICON_COLORS.length];
+        const initials = token.symbol.slice(0, 2).toUpperCase();
+        const price = formatPrice(token.price_usd);
+        const change = formatChange(token.change_pct || 0);
+        const flashClass = token._flash || "";
+
+        return `
+          <tr class="token-row" id="row-${token.address}">
+            <td class="rank">${i + 1}</td>
+            <td>
+              <div class="token-info">
+                <div class="token-icon" style="background: linear-gradient(135deg, ${c1}, ${c2})">${initials}</div>
+                <div>
+                  <div class="token-symbol">${token.symbol}</div>
+                  <div class="token-name">${token.name}</div>
+                </div>
+              </div>
+            </td>
+            <td class="price ${flashClass}" id="price-${token.address}">${price}</td>
+            <td class="change ${change.cls}">${change.text}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function connectSSE() {
+      const evtSource = new EventSource("/api/stream");
+
+      evtSource.onopen = () => {
+        statusDot.classList.add("connected");
+        statusText.textContent = "Live";
+      };
+
+      evtSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.type === "init") {
+            tokens = data.tokens.map(t => ({
+              ...t,
+              change_pct: t.change_24h || 0,
+              _flash: "",
+            }));
+            data.tokens.forEach(t => { previousPrices[t.address] = t.price_usd; });
+            renderTokens();
+            return;
+          }
+
+          // Individual price update
+          const idx = tokens.findIndex(t => t.address === data.address);
+          if (idx === -1) return;
+
+          const oldPrice = tokens[idx].price_usd;
+          tokens[idx].price_usd = data.price_usd;
+          tokens[idx].updated_at = data.updated_at;
+
+          // Calculate change from initial price
+          if (previousPrices[data.address]) {
+            tokens[idx].change_pct = ((data.price_usd - previousPrices[data.address]) / previousPrices[data.address]) * 100;
+          }
+
+          // Flash effect
+          if (oldPrice !== null && data.price_usd !== oldPrice) {
+            tokens[idx]._flash = data.price_usd > oldPrice ? "flash-green" : "flash-red";
+            setTimeout(() => {
+              tokens[idx]._flash = "";
+              renderTokens();
+            }, 500);
+          }
+
+          updateCount++;
+          updateCounter.textContent = `Updates: ${updateCount.toLocaleString()}`;
+
+          renderTokens();
+        } catch (e) {
+          // ignore parse errors
+        }
+      };
+
+      evtSource.onerror = () => {
+        statusDot.classList.remove("connected");
+        statusText.textContent = "Reconnecting...";
+      };
+    }
+
+    connectSSE();
+  </script>
+</body>
+</html>
